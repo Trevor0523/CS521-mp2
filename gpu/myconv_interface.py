@@ -1,12 +1,18 @@
+import time
 import torch
+from torch.profiler import profile, record_function, ProfilerActivity
 from torch.utils.cpp_extension import load
 
 # Compile and load CUDA extension
+compile_start = time.perf_counter()
 conv_module = load(name="myconv",
                      sources=["myconv_kernel.cu"],
                      verbose=True)
+print(f"CUDA --- host build/load time: {time.perf_counter() - compile_start:.6f} s")
 
 # Input parameters
+# N, C_in, H, W = 4, 3, 25, 25
+# C_out, KH, KW = 4, 6, 6
 N, C_in, H, W = 4, 3, 25, 25
 C_out, KH, KW = 4, 6, 6
 stride, pad = 1, 1
@@ -16,7 +22,21 @@ x = torch.randn(N, C_in, H, W, device="cuda", dtype=torch.float32)
 w = torch.randn(C_out, C_in, KH, KW, device="cuda", dtype=torch.float32)
 
 # Run o4 kernel
-out_custom = conv_module.conv_cuda(x, w, stride, pad)
+with torch.no_grad():
+    for _ in range(5):
+        conv_module.conv_cuda(x, w, stride, pad)
+    torch.cuda.synchronize()
+
+    with profile(
+        activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+        record_shapes=True,
+    ) as prof:
+        for i in range(3):
+            with record_function(f"cuda_conv_iter_{i}"):
+                out_custom = conv_module.conv_cuda(x, w, stride, pad)
+                torch.cuda.synchronize()
+
+prof.export_chrome_trace("traces/cuda_trace_4x3x25x25.json")
 
 # Reference solution (PyTorch)
 out_ref = torch.nn.functional.conv2d(x, w, stride=stride, padding=pad)
