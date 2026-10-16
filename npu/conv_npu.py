@@ -62,14 +62,71 @@ def conv2d(X, W, bias):
         buffer=nl.hbm,
     )
 
-    # Various tiling dimensions (You may want to define more of them)
-    c_in_pmax = nl.tile_size.pmax
-    n_tiles_c_in = in_channels // c_in_pmax
+    channels = nl.tile_size.pmax
+    n_in = in_channels // channels
+    n_out = out_channels // channels
+    tile_rows = min(out_height, nl.tile_size.gemm_moving_fmax // out_width)
 
-    # Process the images in batches
-    for b in nl.affine_range(batch_size):
-        raise RuntimeError("Please fill your implementation of computing convolution"
-                           " of X[b] with the weights W and bias b and store the result in X_out[b]")
+    strip_budget_rows = max(tile_rows, (4 * 1024 * 1024) //
+                            (in_channels * input_width * 4) - filter_height + 1)
+    tiles_per_strip = min(8, max(1, strip_budget_rows // tile_rows),
+                          (out_height + tile_rows - 1) // tile_rows)
+    strip_rows = tile_rows * tiles_per_strip
+    load_rows = strip_rows + filter_height - 1
+    pixels = tile_rows * out_width
+
+    p = nl.arange(channels)[:, None]
+    q = nl.arange(channels)[None, :]
+    weights = nl.ndarray((n_out, n_in, filter_height, filter_width,
+                          nl.par_dim(channels), channels),
+                         dtype=W.dtype, buffer=nl.sbuf)
+    biases = nl.ndarray((n_out, nl.par_dim(channels), 1),
+                        dtype=nl.float32, buffer=nl.sbuf)
+    for oc in nl.affine_range(n_out):
+        biases[oc] = nl.load(bias[oc * channels + p])
+        for ic in nl.affine_range(n_in):
+            raw_w = nl.load(W[oc * channels:(oc + 1) * channels,
+                              ic * channels:(ic + 1) * channels, :, :])
+            for kh in nl.affine_range(filter_height):
+                for kw in nl.affine_range(filter_width):
+                    w = raw_w[p, q, kh, kw]
+                    weights[oc, ic, kh, kw] = nl.copy(
+                        nisa.nc_transpose(w), dtype=W.dtype)
+
+    cp = nl.arange(channels)[:, None, None]
+    load_r = nl.arange(load_rows)[None, :, None]
+    load_c = nl.arange(input_width)[None, None, :]
+    r = nl.arange(tile_rows)[None, :, None]
+    c = nl.arange(out_width)[None, None, :]
+
+    for b in nl.sequential_range(batch_size):
+        for strip in nl.affine_range((out_height + strip_rows - 1) // strip_rows):
+            first_row = strip * strip_rows
+            inputs = nl.ndarray((n_in, nl.par_dim(channels), load_rows, input_width),
+                                dtype=X.dtype, buffer=nl.sbuf)
+            for ic in nl.affine_range(n_in):
+                inputs[ic] = nl.load(
+                    X[b, ic * channels + cp, first_row + load_r, load_c],
+                    mask=first_row + load_r < input_height)
+
+            for oc in nl.affine_range(n_out):
+                for tile in nl.affine_range(tiles_per_strip):
+                    acc = nl.zeros((channels, pixels), dtype=nl.float32,
+                                   buffer=nl.psum)
+                    for ic in nl.affine_range(n_in):
+                        for kh in nl.affine_range(filter_height):
+                            for kw in nl.affine_range(filter_width):
+                                patch = nl.copy(inputs[
+                                    ic, cp, tile * tile_rows + kh + r, kw + c])
+                                acc += nisa.nc_matmul(
+                                    weights[oc, ic, kh, kw],
+                                    patch.reshape((channels, pixels)))
+
+                    result = nl.add(nl.copy(acc, dtype=nl.float32), biases[oc])
+                    output_row = first_row + tile * tile_rows + r
+                    nl.store(X_out[b, oc * channels + cp, output_row, c],
+                             value=result.reshape((channels, tile_rows, out_width)),
+                             mask=output_row < out_height)
 
     return X_out
 

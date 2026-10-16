@@ -1,0 +1,63 @@
+Running on ip-172-31-28-131 with neuronx-cc 2.22.12471.0+b4a00d10
+Running correctness test for conv2d kernel with smaller images...sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+Passed 😎
+Running correctness test for conv2d kernel with larger images...sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+Passed 😇
+Running correctness test for conv2d kernel with larger images + bias...sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+
+file_float32                                                                    
++---+----+---------+---------+---------+-------+--------+------+-------+-------+--------+---------+---------+-------+
+  B   NC   NC USED   WEIGHTS   MODE      INF/S   IRES/S   L(1)   L(50)   L(99)   NCL(1)   NCL(50)   NCL(99)   %USER  
+  1   1    1         dynamic   LIBMODE   84.93   84.93    3869   3926    3943    3799     3814      3822      N/A    
++---+----+---------+---------+---------+-------+--------+------+-------+-------+--------+---------+---------+-------+
+time="2026-10-16T01:48:54Z" level=info msg="Successfully initialized OpenAPI server configuration." basePath=/api/v2 version=v2
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+sys:1: DeprecationWarning: Block dimension is deprecated. The leading dimension of SBUF tensor must be partition dimension
+
+file_float16                                                                    
++---+----+---------+---------+---------+--------+--------+------+-------+-------+--------+---------+---------+-------+
+  B   NC   NC USED   WEIGHTS   MODE      INF/S    IRES/S   L(1)   L(50)   L(99)   NCL(1)   NCL(50)   NCL(99)   %USER  
+  1   1    1         dynamic   LIBMODE   209.67   209.67   842    870     879     780      781       782       N/A    
++---+----+---------+---------+---------+--------+--------+------+-------+-------+--------+---------+---------+-------+
+time="2026-10-16T01:49:20Z" level=info msg="Successfully initialized OpenAPI server configuration." basePath=/api/v2 version=v2
+Passed 😍
+Comparing performance with reference kernel (float32)...
+
+
+Execution Time for student implementation: 3822 μs
+Performance test passed 😍
+
+
+NEFF / NTFF files generated with names: conv_float32.neff, conv_float32.ntff
+Comparing performance with reference kernel (float16)...
+
+
+Execution Time for student implementation: 782 μs
+Performance test passed 😍
+
+
+NEFF / NTFF files generated with names: conv_float16.neff, conv_float16.ntff
+
+MFU (float32): 19.4%
+Wrote conv_float32.pftrace
+MFU (float16): 47.3%
+Wrote conv_float16.pftrace
